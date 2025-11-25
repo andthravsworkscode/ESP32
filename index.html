@@ -650,18 +650,45 @@
       btnClearDraw.disabled = !enabled;
     }
 
-    async function connectBLE() {
-      if (!navigator.bluetooth) {
-        alert("This browser does not support Web Bluetooth.");
-        return;
-      }
-      try {
-        setStatus("Requesting device...");
-        log("Requesting Bluetooth device...");
-        const device = await navigator.bluetooth.requestDevice({
-          filters: [{ namePrefix: "ESP32" }],
-          optionalServices: [UART_SERVICE_UUID],
-        });
+  async function connectBLE() {
+  try {
+    log("Requesting device...");
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ namePrefix: "ESP32" }],
+      optionalServices: [UART_SERVICE_UUID]
+    });
+
+    device.addEventListener("gattserverdisconnected", () => {
+      log("Device disconnected — waiting...");
+      setStatus("Disconnected", false);
+      btnConnect.disabled = false;
+    });
+
+    log("Connecting...");
+    server = await device.gatt.connect();
+
+    log("Getting services...");
+    const service = await server.getPrimaryService(UART_SERVICE_UUID);
+
+    uartTxChar = await service.getCharacteristic(UART_TX_UUID);
+    uartRxChar = await service.getCharacteristic(UART_RX_UUID);
+
+    await uartTxChar.startNotifications();
+    uartTxChar.addEventListener("characteristicvaluechanged", handleNotification);
+
+    setControlsEnabled(true);
+    setStatus("Connected", true);
+    btnConnect.disabled = true;
+    btnDisconnect.disabled = false;
+
+    log("✓ CONNECTED SUCCESSFULLY");
+
+  } catch (e) {
+    log("ERROR: " + e);
+    setStatus("Retry Required");
+  }
+}
+
 
         bleDevice = device;
         bleDevice.addEventListener("gattserverdisconnected", onDisconnected);
@@ -829,3 +856,4 @@
   </script>
 </body>
 </html>
+
