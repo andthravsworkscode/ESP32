@@ -1,166 +1,296 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>ESP32 Watch Control</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <style>
 body {
   margin:0;
-  font-family: "Segoe UI", sans-serif;
-  background: linear-gradient(135deg,#050505,#111827,#0b0f31,#050505);
-  background-size: 400% 400%;
-  animation: gradient 12s ease infinite;
-  color:white;
-  text-align:center;
-  padding:20px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: radial-gradient(circle at top,#1a2235,#050509,#02030a);
+  color:#f5f5ff;
+  display:flex;
+  justify-content:center;
+  padding:16px;
 }
-@keyframes gradient {
-  0% {background-position:0% 50%;}
-  50% {background-position:100% 50%;}
-  100% {background-position:0% 50%;}
+.app {
+  width:100%;
+  max-width:720px;
 }
-
 h1 {
-  font-size:32px;
+  text-align:center;
   font-weight:600;
-  background: linear-gradient(to right,#00ffa6,#33c9ff);
+  margin:8px 0 4px;
+  background:linear-gradient(90deg,#00ffa3,#0af,#ffea00);
   -webkit-background-clip:text;
   color:transparent;
-  margin-bottom:10px;
 }
-
-.section {
-  backdrop-filter: blur(10px);
-  background: rgba(255,255,255,0.06);
-  border:1px solid rgba(255,255,255,0.1);
-  margin:15px auto;
-  padding:20px;
+.subtitle {
+  text-align:center;
+  font-size:0.85rem;
+  color:#9ca3c6;
+  margin-bottom:12px;
+}
+.card {
+  background:rgba(10,12,24,0.9);
   border-radius:18px;
-  width:90%;
-  max-width:520px;
-  box-shadow: 0 0 18px rgba(0,255,180,0.25);
+  padding:16px;
+  margin-bottom:12px;
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 18px 40px rgba(0,0,0,0.6);
 }
-
+.row {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
 button {
-  padding:12px 25px;
-  margin:6px;
-  font-size:18px;
-  font-weight:600;
-  border:none;
+  padding:8px 14px;
   border-radius:12px;
-  background:linear-gradient(135deg,#00ffb3,#0098ff);
+  border:none;
   cursor:pointer;
-  color:black;
-  transition:0.2s;
+  font-size:0.9rem;
+  font-weight:500;
+  background:linear-gradient(135deg,#00ffbf,#00a3ff);
+  color:#020617;
+  box-shadow:0 0 12px rgba(0,255,191,0.4);
+  transition:transform 0.1s, box-shadow 0.1s, opacity 0.1s;
 }
 button:hover {
-  transform:scale(1.06);
-  box-shadow:0 0 15px #00ffc3;
+  transform:translateY(-1px);
+  box-shadow:0 0 18px rgba(0,255,191,0.6);
 }
 button:disabled {
-  background:#4a4a4a;
+  opacity:0.4;
+  box-shadow:none;
+  cursor:default;
 }
-
+.chip {
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid rgba(148,163,184,0.7);
+  font-size:0.8rem;
+  cursor:pointer;
+  background:rgba(15,23,42,0.8);
+  color:#e5e7f8;
+}
+.chip.active {
+  background:linear-gradient(135deg,#22c55e,#0ea5e9);
+  color:#020617;
+  border-color:transparent;
+  box-shadow:0 0 14px rgba(56,189,248,0.7);
+}
+h2 {
+  font-size:1rem;
+  margin:0 0 8px;
+}
 input {
-  width:180px;
-  padding:10px;
+  padding:8px 10px;
   border-radius:10px;
-  border:none;
-  outline:none;
-  font-size:18px;
-  background:#1d1d1d;
-  color:#00ffc8;
-  text-align:center;
+  border:1px solid rgba(148,163,184,0.4);
+  background:#020617;
+  color:#e5e7eb;
+  font-size:0.9rem;
+}
+input::placeholder {
+  color:#64748b;
+}
+.small {
+  font-size:0.8rem;
+  color:#94a3b8;
 }
 #status {
-  font-size:18px;
-  margin-top:10px;
-  opacity:0.85;
+  font-size:0.9rem;
+  color:#a5b4fc;
 }
 </style>
 </head>
-
 <body>
+<div class="app">
+  <h1>ESP32 Watch</h1>
+  <div class="subtitle">Bluetooth dashboard · Hosted on GitHub Pages</div>
 
-<h1>ESP32 WATCH CONTROL</h1>
-<button id="connectBtn">CONNECT</button>
-<p id="status">Disconnected</p>
+  <div class="card">
+    <div class="row">
+      <button id="btnConnect">Connect</button>
+      <div id="status">Disconnected</div>
+    </div>
+  </div>
 
-<div class="section">
-  <h2>Clock Settings</h2>
-  <button onclick="sendCmd('FMT 12')">12-Hour</button>
-  <button onclick="sendCmd('FMT 24')">24-Hour</button>
-  <br>
-  <button onclick="sendCmd('SEC ON')">Seconds On</button>
-  <button onclick="sendCmd('SEC OFF')">Seconds Off</button>
-  <br><br>
-  <input id="ts" placeholder="HH:MM:SS">
-  <button onclick="sendTime()">Set Time</button>
-</div>
+  <div class="card">
+    <h2>Clock</h2>
+    <div class="row" style="margin-bottom:8px;">
+      <span class="small">Format:</span>
+      <div class="chip active" id="fmt12">12-hour</div>
+      <div class="chip" id="fmt24">24-hour</div>
+    </div>
+    <div class="row" style="margin-bottom:8px;">
+      <span class="small">Seconds:</span>
+      <div class="chip" id="secOff">Hide</div>
+      <div class="chip" id="secOn">Show</div>
+    </div>
+    <div class="row">
+      <input id="timeInput" placeholder="HH:MM:SS" />
+      <button id="btnSetTime">Set</button>
+      <button id="btnSync">Use device time</button>
+    </div>
+  </div>
 
-<div class="section">
-  <h2>Modes</h2>
-  <button onclick="sendCmd('MODE CLOCK')">Clock</button>
-  <button onclick="sendCmd('MODE TIMER')">Timer</button>
-  <button onclick="sendCmd('MODE SW')">Stopwatch</button>
-  <button onclick="sendCmd('MODE SLEEP')">Sleep</button>
-</div>
+  <div class="card">
+    <h2>Modes</h2>
+    <div class="row">
+      <button onclick="sendCmd('MODE CLOCK')">Clock</button>
+      <button onclick="sendCmd('MODE TIMER')">Timer</button>
+      <button onclick="sendCmd('MODE SW')">Stopwatch</button>
+      <button onclick="sendCmd('MODE SLEEP')">Sleep</button>
+    </div>
+  </div>
 
-<div class="section">
-  <h2>Timer</h2>
-  <input id="timer" placeholder="MM:SS">
-  <button onclick="timerStart()">Start</button>
-  <button onclick="sendCmd('TIMER_STOP')">Stop</button>
-</div>
+  <div class="card">
+    <h2>Timer</h2>
+    <div class="row" style="margin-bottom:8px;">
+      <span class="small">Duration:</span>
+      <input id="timerInput" placeholder="MM:SS" />
+      <button id="btnTimerStart">Start</button>
+      <button onclick="sendCmd('TIMER_STOP')">Stop</button>
+    </div>
+    <div class="row">
+      <span class="small">Style:</span>
+      <div class="chip active" id="style0">Solid chunks</div>
+      <div class="chip" id="style1">Bars</div>
+      <div class="chip" id="style2">Thin</div>
+    </div>
+  </div>
 
-<div class="section">
-  <h2>Stopwatch</h2>
-  <button onclick="sendCmd('SW_START')">Start</button>
-  <button onclick="sendCmd('SW_STOP')">Stop</button>
-  <button onclick="sendCmd('SW_RESET')">Reset</button>
+  <div class="card">
+    <h2>Stopwatch</h2>
+    <div class="row">
+      <button onclick="sendCmd('SW_START')">Start</button>
+      <button onclick="sendCmd('SW_STOP')">Stop</button>
+      <button onclick="sendCmd('SW_RESET')">Reset</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Appearance</h2>
+    <div class="row" style="margin-bottom:8px;">
+      <span class="small">Theme:</span>
+      <div class="chip" data-theme="0">Retro</div>
+      <div class="chip" data-theme="1">Cyber</div>
+      <div class="chip" data-theme="2">Bomb</div>
+      <div class="chip" data-theme="3">TV</div>
+      <div class="chip" data-theme="4">Stickmin</div>
+    </div>
+    <div class="row">
+      <span class="small">Size:</span>
+      <div class="chip active" id="scale1">Small</div>
+      <div class="chip" id="scale2">Large</div>
+    </div>
+  </div>
 </div>
 
 <script>
 let device, server, service, txChar;
 
-async function connectBLE() {
+function setStatus(msg, ok=false){
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.style.color = ok ? '#4ade80' : '#a5b4fc';
+}
+
+async function connectBLE(){
   try {
     device = await navigator.bluetooth.requestDevice({
-      filters:[{name:"ESP32_WATCH"}],
-      optionalServices:["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
+      filters:[{ name: "ESP32_WATCH" }],
+      optionalServices:[ "6e400001-b5a3-f393-e0a9-e50e24dcca9e" ]
     });
 
     server = await device.gatt.connect();
     service = await server.getPrimaryService("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
 
+    // RX characteristic on ESP32 side = write from browser
     txChar = await service.getCharacteristic("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
 
-    document.getElementById("status").innerText = "Connected ✔";
-  }
-  catch(e){
-    document.getElementById("status").innerText = "Failed ❌";
+    setStatus("Connected ✔", true);
+  } catch(e){
+    console.error(e);
+    setStatus("Failed to connect ❌");
   }
 }
 
 function sendCmd(c){
   if(!txChar) return;
-  txChar.writeValue(new TextEncoder().encode(c+"\n"));
+  const data = new TextEncoder().encode(c + "\n");
+  txChar.writeValue(data);
 }
 
-function sendTime(){
-  sendCmd("TIME " + document.getElementById("ts").value);
-}
+document.getElementById('btnConnect').onclick = connectBLE;
 
-function timerStart(){
-  const parts=document.getElementById("timer").value.split(":");
-  sendCmd(`TIMER_START:${parts[0]}:${parts[1]}`);
-}
+// Clock format chips
+const fmt12 = document.getElementById('fmt12');
+const fmt24 = document.getElementById('fmt24');
+fmt12.onclick = () => { sendCmd("FMT 12"); fmt12.classList.add('active'); fmt24.classList.remove('active'); };
+fmt24.onclick = () => { sendCmd("FMT 24"); fmt24.classList.add('active'); fmt12.classList.remove('active'); };
 
-document.getElementById("connectBtn").onclick = connectBLE;
+// Seconds chips
+const secOn = document.getElementById('secOn');
+const secOff = document.getElementById('secOff');
+secOff.classList.add('active');
+secOn.onclick = () => { sendCmd("SEC ON"); secOn.classList.add('active'); secOff.classList.remove('active'); };
+secOff.onclick = () => { sendCmd("SEC OFF"); secOff.classList.add('active'); secOn.classList.remove('active'); };
+
+// Time set
+document.getElementById('btnSetTime').onclick = () => {
+  const t = document.getElementById('timeInput').value.trim();
+  if (!t) return;
+  sendCmd("TIME " + t);
+};
+
+document.getElementById('btnSync').onclick = () => {
+  const d = new Date();
+  const h = d.getHours().toString().padStart(2,'0');
+  const m = d.getMinutes().toString().padStart(2,'0');
+  const s = d.getSeconds().toString().padStart(2,'0');
+  sendCmd(`TIME ${h}:${m}:${s}`);
+};
+
+// Timer
+document.getElementById('btnTimerStart').onclick = () => {
+  const raw = document.getElementById('timerInput').value.trim();
+  if(!raw) return;
+  const parts = raw.split(':');
+  const mm = parseInt(parts[0]||"0",10);
+  const ss = parseInt(parts[1]||"0",10);
+  sendCmd(`TIMER_START:${mm}:${ss}`);
+};
+
+// Timer style chips
+const style0 = document.getElementById('style0');
+const style1 = document.getElementById('style1');
+const style2 = document.getElementById('style2');
+
+style0.onclick = () => { sendCmd("TIMER_STYLE:0"); style0.classList.add('active'); style1.classList.remove('active'); style2.classList.remove('active'); };
+style1.onclick = () => { sendCmd("TIMER_STYLE:1"); style1.classList.add('active'); style0.classList.remove('active'); style2.classList.remove('active'); };
+style2.onclick = () => { sendCmd("TIMER_STYLE:2"); style2.classList.add('active'); style0.classList.remove('active'); style1.classList.remove('active'); };
+
+// Themes
+document.querySelectorAll('[data-theme]').forEach(chip=>{
+  chip.onclick = () => {
+    const t = chip.dataset.theme;
+    sendCmd("THEME:" + t);
+    document.querySelectorAll('[data-theme]').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+  };
+});
+
+// Scale
+const scale1 = document.getElementById('scale1');
+const scale2 = document.getElementById('scale2');
+scale1.onclick = () => { sendCmd("SCALE 1"); scale1.classList.add('active'); scale2.classList.remove('active'); };
+scale2.onclick = () => { sendCmd("SCALE 2"); scale2.classList.add('active'); scale1.classList.remove('active'); };
+
 </script>
-
 </body>
 </html>
-
