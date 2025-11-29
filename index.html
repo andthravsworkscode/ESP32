@@ -1,859 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>ESP32 Smartwatch Console</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    :root {
-      --bg: #02040a;
-      --card-bg: rgba(10, 14, 25, 0.92);
-      --accent: #00d1ff;
-      --accent-soft: rgba(0, 209, 255, 0.25);
-      --accent-strong: #4df1ff;
-      --text-main: #f5f7fb;
-      --text-muted: #8c93a5;
-      --danger: #ff4b6a;
-      --good: #4bff98;
-      --border-soft: rgba(255, 255, 255, 0.06);
-      --shadow-soft: 0 24px 80px rgba(0, 0, 0, 0.7);
-      --radius-xl: 22px;
-      --radius-lg: 14px;
-      --radius-md: 10px;
-      --blur-glass: 18px;
-    }
+<meta charset="UTF-8">
+<title>ESP32 Watch Control</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+<style>
+body {
+  margin:0;
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(135deg,#050505,#111827,#0b0f31,#050505);
+  background-size: 400% 400%;
+  animation: gradient 12s ease infinite;
+  color:white;
+  text-align:center;
+  padding:20px;
+}
+@keyframes gradient {
+  0% {background-position:0% 50%;}
+  50% {background-position:100% 50%;}
+  100% {background-position:0% 50%;}
+}
 
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-        "Roboto", sans-serif;
-      background: radial-gradient(circle at top, #09121f 0, #02040a 55%);
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
+h1 {
+  font-size:32px;
+  font-weight:600;
+  background: linear-gradient(to right,#00ffa6,#33c9ff);
+  -webkit-background-clip:text;
+  color:transparent;
+  margin-bottom:10px;
+}
 
-    .app-shell {
-      width: min(960px, 100vw - 24px);
-      max-height: calc(100vh - 32px);
-      background: var(--card-bg);
-      border-radius: 28px;
-      padding: 18px 18px 16px;
-      box-shadow: var(--shadow-soft);
-      border: 1px solid var(--border-soft);
-      backdrop-filter: blur(var(--blur-glass));
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
+.section {
+  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1);
+  margin:15px auto;
+  padding:20px;
+  border-radius:18px;
+  width:90%;
+  max-width:520px;
+  box-shadow: 0 0 18px rgba(0,255,180,0.25);
+}
 
-    @media (max-width: 720px) {
-      .app-shell {
-        padding: 14px;
-        border-radius: 20px;
-      }
-    }
+button {
+  padding:12px 25px;
+  margin:6px;
+  font-size:18px;
+  font-weight:600;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(135deg,#00ffb3,#0098ff);
+  cursor:pointer;
+  color:black;
+  transition:0.2s;
+}
+button:hover {
+  transform:scale(1.06);
+  box-shadow:0 0 15px #00ffc3;
+}
+button:disabled {
+  background:#4a4a4a;
+}
 
-    .app-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border-soft);
-    }
-
-    .title-block {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .app-title {
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      font-size: 0.95rem;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-
-    .app-subtitle {
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border-radius: 999px;
-      padding: 6px 12px;
-      background: radial-gradient(circle at top left, #1d2938, #050814);
-      border: 1px solid var(--border-soft);
-      font-size: 0.8rem;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: var(--danger);
-      box-shadow: 0 0 10px rgba(255, 75, 106, 0.7);
-      transition: background 0.2s, box-shadow 0.2s;
-    }
-
-    .status-dot.connected {
-      background: var(--good);
-      box-shadow: 0 0 10px rgba(75, 255, 152, 0.7);
-    }
-
-    .status-label {
-      color: var(--text-muted);
-    }
-
-    .status-text {
-      font-weight: 500;
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    button {
-      border: none;
-      border-radius: 999px;
-      padding: 8px 14px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      letter-spacing: 0.01em;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #101623;
-      color: var(--text-main);
-      border: 1px solid var(--border-soft);
-      transition: background 0.15s ease, transform 0.08s ease,
-        box-shadow 0.15s ease, border-color 0.15s ease;
-    }
-
-    button span.icon {
-      font-size: 1.05rem;
-    }
-
-    button.primary {
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      color: #02040a;
-      box-shadow: 0 8px 26px rgba(0, 209, 255, 0.45);
-      border-color: rgba(0, 209, 255, 0.5);
-    }
-
-    button.primary:disabled {
-      box-shadow: none;
-      opacity: 0.6;
-    }
-
-    button:disabled {
-      opacity: 0.4;
-      cursor: default;
-    }
-
-    button:not(:disabled):active {
-      transform: translateY(1px) scale(0.99);
-      box-shadow: none;
-    }
-
-    button:not(:disabled):hover {
-      filter: brightness(1.05);
-    }
-
-    .content-grid {
-      display: grid;
-      grid-template-columns: 1.1fr 1fr;
-      gap: 14px;
-    }
-
-    @media (max-width: 840px) {
-      .content-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .panel {
-      background: radial-gradient(circle at top left, #121827, #050814);
-      border-radius: var(--radius-xl);
-      padding: 12px 14px;
-      border: 1px solid var(--border-soft);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .panel::before {
-      content: "";
-      position: absolute;
-      inset: -40%;
-      background: radial-gradient(
-        circle at top,
-        rgba(0, 209, 255, 0.11),
-        transparent 55%
-      );
-      opacity: 0.8;
-      pointer-events: none;
-      mix-blend-mode: screen;
-    }
-
-    .panel-inner {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .panel-title {
-      font-size: 0.95rem;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .panel-title-pill {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text-muted);
-    }
-
-    .panel-caption {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-    }
-
-    .segment {
-      border-radius: var(--radius-lg);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      padding: 8px 10px;
-      background: rgba(3, 6, 16, 0.88);
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .segment-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .segment-title {
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-    }
-
-    .segment-body {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .field-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      flex: 1;
-      min-width: 120px;
-    }
-
-    label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    input[type="text"],
-    input[type="number"] {
-      background: rgba(8, 11, 22, 0.96);
-      border-radius: var(--radius-md);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      color: var(--text-main);
-      padding: 7px 10px;
-      font-size: 0.9rem;
-      outline: none;
-      width: 100%;
-    }
-
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    input[type="number"] {
-      -moz-appearance: textfield;
-    }
-
-    input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(0, 209, 255, 0.6);
-    }
-
-    .timer-fields {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .timer-fields input[type="number"] {
-      max-width: 70px;
-      text-align: center;
-    }
-
-    .badge-soft {
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: rgba(0, 209, 255, 0.09);
-      border: 1px solid rgba(0, 209, 255, 0.3);
-      font-size: 0.7rem;
-      color: var(--accent-strong);
-    }
-
-    .draw-wrapper {
-      border-radius: var(--radius-lg);
-      border: 1px dashed rgba(255, 255, 255, 0.16);
-      padding: 6px;
-      background: radial-gradient(circle at top, #0c1420, #050814);
-    }
-
-    .draw-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-      gap: 8px;
-    }
-
-    .draw-meta {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    #drawCanvas {
-      display: block;
-      width: 100%;
-      height: auto;
-      background: radial-gradient(circle at top, #02040a, #010207);
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      cursor: crosshair;
-      touch-action: none;
-    }
-
-    .footer-line {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 6px;
-      border-top: 1px solid var(--border-soft);
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      gap: 8px;
-    }
-
-    .footer-line span.accent {
-      color: var(--accent-strong);
-      font-weight: 500;
-    }
-
-    .mini-pill {
-      padding: 2px 6px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(255, 255, 255, 0.02);
-    }
-
-    .log-area {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      max-height: 72px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-
-    .log-line {
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
-  </style>
+input {
+  width:180px;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  outline:none;
+  font-size:18px;
+  background:#1d1d1d;
+  color:#00ffc8;
+  text-align:center;
+}
+#status {
+  font-size:18px;
+  margin-top:10px;
+  opacity:0.85;
+}
+</style>
 </head>
+
 <body>
-  <div class="app-shell">
-    <header class="app-header">
-      <div class="title-block">
-        <div class="app-title">ESP32 · OLED WATCH</div>
-        <div class="app-subtitle">Control Center</div>
-      </div>
-      <div class="header-actions">
-        <div class="status-pill">
-          <div id="statusDot" class="status-dot"></div>
-          <div>
-            <div class="status-label">Status</div>
-            <div id="statusText" class="status-text">Disconnected</div>
-          </div>
-        </div>
-        <button id="btnConnect" class="primary">
-          <span class="icon">🔗</span>
-          <span>Connect</span>
-        </button>
-        <button id="btnDisconnect">
-          <span class="icon">⏏</span>
-          <span>Disconnect</span>
-        </button>
-      </div>
-    </header>
 
-    <div class="content-grid">
-      <!-- LEFT: Time + Timer + Message -->
-      <section class="panel">
-        <div class="panel-inner">
-          <div class="panel-header">
-            <div class="panel-title">
-              <span class="panel-title-pill">TIME / TIMER</span>
-              <span>Watch Controls</span>
-            </div>
-            <span class="badge-soft">Tesla x Apple Hybrid UI</span>
-          </div>
-          <div class="panel-caption">
-            Sync the ESP32 clock, set timers, and send quick messages to the OLED.
-          </div>
+<h1>ESP32 WATCH CONTROL</h1>
+<button id="connectBtn">CONNECT</button>
+<p id="status">Disconnected</p>
 
-          <!-- CLOCK -->
-          <div class="segment">
-            <div class="segment-header">
-              <div class="segment-title">CLOCK</div>
-              <span class="mini-pill">Uses your device time</span>
-            </div>
-            <div class="segment-body">
-              <div class="field-row">
-                <button id="btnSyncTime" class="primary">
-                  <span class="icon">🕒</span>
-                  <span>Sync Time</span>
-                </button>
-                <button id="btnClockMode">
-                  <span class="icon">⌚</span>
-                  <span>Clock Mode</span>
-                </button>
-              </div>
-            </div>
-          </div>
+<div class="section">
+  <h2>Clock Settings</h2>
+  <button onclick="sendCmd('FMT 12')">12-Hour</button>
+  <button onclick="sendCmd('FMT 24')">24-Hour</button>
+  <br>
+  <button onclick="sendCmd('SEC ON')">Seconds On</button>
+  <button onclick="sendCmd('SEC OFF')">Seconds Off</button>
+  <br><br>
+  <input id="ts" placeholder="HH:MM:SS">
+  <button onclick="sendTime()">Set Time</button>
+</div>
 
-          <!-- TIMER -->
-          <div class="segment">
-            <div class="segment-header">
-              <div class="segment-title">TIMER</div>
-              <span class="mini-pill">Countdown on watch</span>
-            </div>
-            <div class="segment-body">
-              <div class="field-row">
-                <div class="field-group">
-                  <label for="timerMinutes">Minutes</label>
-                  <input
-                    id="timerMinutes"
-                    type="number"
-                    min="0"
-                    max="999"
-                    value="0"
-                  />
-                </div>
-                <div class="field-group">
-                  <label for="timerSeconds">Seconds</label>
-                  <input
-                    id="timerSeconds"
-                    type="number"
-                    min="0"
-                    max="59"
-                    value="30"
-                  />
-                </div>
-              </div>
-              <div class="field-row">
-                <button id="btnStartTimer" class="primary">
-                  <span class="icon">⏱</span>
-                  <span>Start Timer</span>
-                </button>
-              </div>
-            </div>
-          </div>
+<div class="section">
+  <h2>Modes</h2>
+  <button onclick="sendCmd('MODE CLOCK')">Clock</button>
+  <button onclick="sendCmd('MODE TIMER')">Timer</button>
+  <button onclick="sendCmd('MODE SW')">Stopwatch</button>
+  <button onclick="sendCmd('MODE SLEEP')">Sleep</button>
+</div>
 
-          <!-- MESSAGE -->
-          <div class="segment">
-            <div class="segment-header">
-              <div class="segment-title">MESSAGE</div>
-              <span class="mini-pill">One-line OLED text</span>
-            </div>
-            <div class="segment-body">
-              <div class="field-group">
-                <label for="messageInput">Message to display</label>
-                <input
-                  id="messageInput"
-                  type="text"
-                  placeholder="Type something for the watch..."
-                />
-              </div>
-              <div class="field-row">
-                <button id="btnSendMessage" class="primary">
-                  <span class="icon">💬</span>
-                  <span>Send Message</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+<div class="section">
+  <h2>Timer</h2>
+  <input id="timer" placeholder="MM:SS">
+  <button onclick="timerStart()">Start</button>
+  <button onclick="sendCmd('TIMER_STOP')">Stop</button>
+</div>
 
-      <!-- RIGHT: Draw pad + logs -->
-      <section class="panel">
-        <div class="panel-inner">
-          <div class="panel-header">
-            <div class="panel-title">
-              <span class="panel-title-pill">DRAW</span>
-              <span>Pixel Canvas → OLED</span>
-            </div>
-          </div>
-          <div class="panel-caption">
-            Sketch anything; pixels are streamed live as commands to the ESP32.
-          </div>
+<div class="section">
+  <h2>Stopwatch</h2>
+  <button onclick="sendCmd('SW_START')">Start</button>
+  <button onclick="sendCmd('SW_STOP')">Stop</button>
+  <button onclick="sendCmd('SW_RESET')">Reset</button>
+</div>
 
-          <div class="draw-wrapper">
-            <div class="draw-header">
-              <div class="draw-meta">
-                OLED grid: <span class="accent">128 × 64 px</span>
-              </div>
-              <div class="field-row">
-                <button id="btnClearDraw">
-                  <span class="icon">🧹</span>
-                  <span>Clear</span>
-                </button>
-              </div>
-            </div>
-            <canvas id="drawCanvas" width="256" height="128"></canvas>
-          </div>
+<script>
+let device, server, service, txChar;
 
-          <div class="segment">
-            <div class="segment-header">
-              <div class="segment-title">LINK LOG</div>
-              <span class="mini-pill">Last events</span>
-            </div>
-            <div class="segment-body">
-              <div id="logArea" class="log-area"></div>
-            </div>
-          </div>
-
-          <div class="footer-line">
-            <span>
-              <span class="accent">Tip:</span> Chrome / Edge + HTTPS or localhost
-              required for Web Bluetooth.
-            </span>
-            <span class="mini-pill">ESP32 · BLE UART</span>
-          </div>
-        </div>
-      </section>
-    </div>
-  </div>
-
-  <script>
-    // --- BLE UART UUIDs (Nordic-style) ---
-    const UART_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-    const UART_TX_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // ESP32 → Browser (notify)
-    const UART_RX_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // Browser → ESP32 (write)
-
-    let bleDevice = null;
-    let gattServer = null;
-    let uartTxChar = null;
-    let uartRxChar = null;
-
-    const statusDot = document.getElementById("statusDot");
-    const statusText = document.getElementById("statusText");
-    const btnConnect = document.getElementById("btnConnect");
-    const btnDisconnect = document.getElementById("btnDisconnect");
-    const btnSyncTime = document.getElementById("btnSyncTime");
-    const btnClockMode = document.getElementById("btnClockMode");
-    const btnStartTimer = document.getElementById("btnStartTimer");
-    const btnSendMessage = document.getElementById("btnSendMessage");
-    const btnClearDraw = document.getElementById("btnClearDraw");
-    const timerMinutes = document.getElementById("timerMinutes");
-    const timerSeconds = document.getElementById("timerSeconds");
-    const messageInput = document.getElementById("messageInput");
-    const logArea = document.getElementById("logArea");
-    const canvas = document.getElementById("drawCanvas");
-    const ctx = canvas.getContext("2d");
-
-    let drawing = false;
-
-    function log(msg) {
-      const line = document.createElement("div");
-      line.className = "log-line";
-      const ts = new Date().toLocaleTimeString();
-      line.textContent = `[${ts}] ${msg}`;
-      logArea.prepend(line);
-      const maxLines = 40;
-      while (logArea.children.length > maxLines) {
-        logArea.removeChild(logArea.lastChild);
-      }
-    }
-
-    function setStatus(text, connected = null) {
-      statusText.textContent = text;
-      if (connected === true) {
-        statusDot.classList.add("connected");
-      } else if (connected === false) {
-        statusDot.classList.remove("connected");
-      }
-    }
-
-    function setControlsEnabled(enabled) {
-      btnSyncTime.disabled = !enabled;
-      btnClockMode.disabled = !enabled;
-      btnStartTimer.disabled = !enabled;
-      btnSendMessage.disabled = !enabled;
-      btnClearDraw.disabled = !enabled;
-    }
-
-  async function connectBLE() {
+async function connectBLE() {
   try {
-    log("Requesting device...");
     device = await navigator.bluetooth.requestDevice({
-      filters: [{ namePrefix: "ESP32" }],
-      optionalServices: [UART_SERVICE_UUID]
+      filters:[{name:"ESP32_WATCH"}],
+      optionalServices:["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
     });
 
-    device.addEventListener("gattserverdisconnected", () => {
-      log("Device disconnected — waiting...");
-      setStatus("Disconnected", false);
-      btnConnect.disabled = false;
-    });
-
-    log("Connecting...");
     server = await device.gatt.connect();
+    service = await server.getPrimaryService("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
 
-    log("Getting services...");
-    const service = await server.getPrimaryService(UART_SERVICE_UUID);
+    txChar = await service.getCharacteristic("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
 
-    uartTxChar = await service.getCharacteristic(UART_TX_UUID);
-    uartRxChar = await service.getCharacteristic(UART_RX_UUID);
-
-    await uartTxChar.startNotifications();
-    uartTxChar.addEventListener("characteristicvaluechanged", handleNotification);
-
-    setControlsEnabled(true);
-    setStatus("Connected", true);
-    btnConnect.disabled = true;
-    btnDisconnect.disabled = false;
-
-    log("✓ CONNECTED SUCCESSFULLY");
-
-  } catch (e) {
-    log("ERROR: " + e);
-    setStatus("Retry Required");
+    document.getElementById("status").innerText = "Connected ✔";
+  }
+  catch(e){
+    document.getElementById("status").innerText = "Failed ❌";
   }
 }
 
+function sendCmd(c){
+  if(!txChar) return;
+  txChar.writeValue(new TextEncoder().encode(c+"\n"));
+}
 
-        bleDevice = device;
-        bleDevice.addEventListener("gattserverdisconnected", onDisconnected);
+function sendTime(){
+  sendCmd("TIME " + document.getElementById("ts").value);
+}
 
-        log("Connecting to GATT server...");
-        setStatus("Connecting...");
-        gattServer = await bleDevice.gatt.connect();
+function timerStart(){
+  const parts=document.getElementById("timer").value.split(":");
+  sendCmd(`TIMER_START:${parts[0]}:${parts[1]}`);
+}
 
-        const service = await gattServer.getPrimaryService(UART_SERVICE_UUID);
-        uartTxChar = await service.getCharacteristic(UART_TX_UUID);
-        uartRxChar = await service.getCharacteristic(UART_RX_UUID);
+document.getElementById("connectBtn").onclick = connectBLE;
+</script>
 
-        await uartTxChar.startNotifications();
-        uartTxChar.addEventListener(
-          "characteristicvaluechanged",
-          handleNotification
-        );
-
-        setStatus("Connected to " + bleDevice.name, true);
-        log("Connected to " + bleDevice.name);
-        btnConnect.disabled = true;
-        btnDisconnect.disabled = false;
-        setControlsEnabled(true);
-      } catch (err) {
-        console.error(err);
-        log("Error: " + err);
-        setStatus("Error");
-      }
-    }
-
-    async function disconnectBLE() {
-      if (!bleDevice) return;
-      log("Disconnecting...");
-      if (bleDevice.gatt.connected) {
-        bleDevice.gatt.disconnect();
-      }
-    }
-
-    function onDisconnected() {
-      log("Device disconnected.");
-      setStatus("Disconnected", false);
-      btnConnect.disabled = false;
-      btnDisconnect.disabled = true;
-      setControlsEnabled(false);
-      uartTxChar = null;
-      uartRxChar = null;
-      gattServer = null;
-      bleDevice = null;
-    }
-
-    function handleNotification(event) {
-      const value = event.target.value;
-      const decoder = new TextDecoder();
-      const text = decoder.decode(value);
-      log("ESP32 → " + text.trim());
-    }
-
-    async function sendCommand(cmd) {
-      if (!uartRxChar) {
-        log("WARN: Not connected, ignoring command.");
-        return;
-      }
-      const encoder = new TextEncoder();
-      const data = encoder.encode(cmd + "\n");
-      try {
-        await uartRxChar.writeValue(data);
-        log("→ " + cmd);
-      } catch (err) {
-        console.error(err);
-        log("Write error: " + err);
-      }
-    }
-
-    // --- UI Actions ---
-
-    btnConnect.addEventListener("click", connectBLE);
-    btnDisconnect.addEventListener("click", disconnectBLE);
-
-    btnSyncTime.addEventListener("click", () => {
-      const now = new Date();
-      const hh = now.getHours();
-      const mm = now.getMinutes();
-      const ss = now.getSeconds();
-      const cmd = `TIME:${hh}:${mm}:${ss}`;
-      sendCommand(cmd);
-    });
-
-    btnClockMode.addEventListener("click", () => {
-      sendCommand("MODE:CLOCK");
-    });
-
-    btnStartTimer.addEventListener("click", () => {
-      let mm = parseInt(timerMinutes.value, 10) || 0;
-      let ss = parseInt(timerSeconds.value, 10) || 0;
-      if (mm < 0) mm = 0;
-      if (ss < 0) ss = 0;
-      if (ss > 59) ss = 59;
-      const cmd = `TIMER:${mm}:${ss}`;
-      sendCommand(cmd);
-    });
-
-    btnSendMessage.addEventListener("click", () => {
-      const msg = (messageInput.value || "").trim();
-      if (!msg) {
-        log("No message to send.");
-        return;
-      }
-      sendCommand("MSG:" + msg);
-    });
-
-    btnClearDraw.addEventListener("click", () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      sendCommand("DRAW:CLR");
-    });
-
-    // --- Drawing logic ---
-    function canvasPosToPixel(e) {
-      const rect = canvas.getBoundingClientRect();
-      const xNorm = (e.clientX - rect.left) / rect.width;
-      const yNorm = (e.clientY - rect.top) / rect.height;
-      const x = Math.floor(xNorm * 128);
-      const y = Math.floor(yNorm * 64);
-      return { x, y };
-    }
-
-    function drawLocalPixel(x, y) {
-      const pxW = canvas.width / 128;
-      const pxH = canvas.height / 64;
-      ctx.fillStyle = "#00e5ff";
-      ctx.fillRect(x * pxW, y * pxH, pxW + 0.5, pxH + 0.5);
-    }
-
-    function handleDrawEvent(e) {
-      if (!drawing) return;
-      e.preventDefault();
-      const { x, y } = canvasPosToPixel(e);
-      if (x < 0 || x > 127 || y < 0 || y > 63) return;
-      drawLocalPixel(x, y);
-      sendCommand(`PX:${x}:${y}`);
-    }
-
-    canvas.addEventListener("pointerdown", (e) => {
-      drawing = true;
-      canvas.setPointerCapture(e.pointerId);
-      handleDrawEvent(e);
-    });
-
-    canvas.addEventListener("pointermove", handleDrawEvent);
-
-    canvas.addEventListener("pointerup", (e) => {
-      drawing = false;
-      canvas.releasePointerCapture(e.pointerId);
-    });
-
-    canvas.addEventListener("pointerleave", () => {
-      drawing = false;
-    });
-
-    // Init state
-    btnDisconnect.disabled = true;
-    setControlsEnabled(false);
-    ctx.fillStyle = "#050814";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    log("UI ready. Click Connect to link to ESP32.");
-  </script>
 </body>
 </html>
 
